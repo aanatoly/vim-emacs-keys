@@ -1,12 +1,6 @@
 
 import vim
 
-def kill_word_normal():
-    kill_word("n")
-
-
-def kill_word_insert():
-    kill_word("i")
 
 def skip_chars(line, slen, pos, test):
     while pos < slen:
@@ -15,7 +9,8 @@ def skip_chars(line, slen, pos, test):
         pos += 1
     return pos
 
-
+################################################
+# {{{ kill word
 def kill_alg_1(line, slen, pos):
     if line[pos:pos+2].isspace():
         pos = skip_chars(line, slen, pos, lambda x: str.isspace(x))
@@ -30,28 +25,30 @@ def kill_alg_1(line, slen, pos):
 
 
 def kill_alg_2(line, slen, pos):
-    # find first alnum
+    # find word
     test = lambda x: not str.isalnum(x)
     anpos = skip_chars(line, slen, pos, test)
 
-    # if no alnum - delete rest of the line
+    # if no word - delete rest of the line
     if anpos == slen:
         return slen - 1
 
-    # if gap is small, delete the word along with the gap
+    # if gap is small, delete both gap and a word
     gap = anpos - pos
-    print ":%s:" % line[pos:anpos]
     if '\t' in line[pos:anpos]:
         gap += 4
     if gap < 4:
-        test = lambda x: str.isalnum(x)
+        test = lambda x: str.isupper(x)
+        anpos = skip_chars(line, slen, anpos, test)
+        test = lambda x: str.isdigit(x) or str.islower(x)
         return skip_chars(line, slen, anpos, test)
 
     # otherwise delete the gap and bring word forward
     return anpos
 
 
-def kill_word(mode):
+def kill_word():
+    mode = vim.eval("a:arg")
     cw = vim.current.window
     cb = vim.current.buffer
     if mode == 'n':
@@ -62,16 +59,34 @@ def kill_word(mode):
         row = int(vim.eval("g:InsRow")) - 1
     line = cb[row]
     slen = len(cb[row])
+
+    # delete empty lines
     if slen == 0:
         while row < len(cb):
             if len(cb[row]):
                 break
             del cb[row]
         return
-    if col == slen -1:
-        cb[row] = line[:col-1]
+
+    # insert mode, end of line - join next line
+    if col == slen:
+        vim.command('/\w')
+        erow, ecol = cw.cursor
+        erow -= 1
+        # if no word found - delete till the end of a buffer
+        if erow < 1:
+            del cb[row + 1:]
+            cw.cursor = (row + 1, col)
+            return
+        # otherwise delete till the word
+        cb[row] += cb[erow][ecol:]
+        del cb[row + 1:erow + 1]
+        cw.cursor = (row + 1, col)
+    elif col == slen -1:
+        cb[row] = line[:col]
     else:
         pos = kill_alg_2(line, slen, col)
         cb[row] = line[:col] + line[pos:]
     slen = len(cb[row])
-    # cb[0] = "mode %s, len %d, row %d, col %d" % (mode, slen, row, col)
+# }}}
+

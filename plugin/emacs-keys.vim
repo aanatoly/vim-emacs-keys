@@ -3,23 +3,30 @@
 " Maintainer:   Anatoly Asviyan <aanatoly@gmail.com>
 " Licence:      GPLv2
 
+if !has('python')
+	finish
+endif
+
 if exists("g:loaded_emacs_keys") || &cp || &modifiable == 0
   finish
 endif
 let g:loaded_emacs_keys = 100
 
 
+let g:InsCol = 0
+let g:InsRow = 0
+autocmd InsertEnter * let g:InsCol = col('.') |
+	\ let g:InsRow = line('.')
+autocmd CursorMovedI * let g:InsCol = col('.') |
+	\ let g:InsRow = line('.')
+
 let s:emacs_py = resolve(expand('<sfile>:p:h')) ."/main.py"
 execute 'pyfile ' . s:emacs_py
 
-function! KillWordNormal()
-    py kill_word_normal()
-endfunc
-function! KillWordInsert()
-    py kill_word_insert()
+function! KillWord(arg)
+    py kill_word()
 endfunc
 
-command! KillWordNormalCmd call KillWordNormal()
-nnoremap <A-d> :KillWordNormalCmd<CR>
-command! KillWordInsertCmd call KillWordInsert()
-inoremap <A-d> <C-o>:KillWordInsertCmd<CR>
+nnoremap <A-d> :call KillWord("n")<CR>
+inoremap <A-d> <C-o>:call KillWord("i")<CR>
+
