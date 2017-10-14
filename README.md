@@ -14,6 +14,9 @@ Find a word, change case - upper, lower or capitalized - and move to the end of 
 ### movements `<M-Left>`, `<M-Right>`
 Move to the start or end of the word. It respects camel-case and `"_"` notation.
 
+### run command `<M-x>`
+Enter command prompt, same as pressing `:`. Works in all modes.
+
 ## Installation
 For Plug plugin manager, add this line after `plug#begin()` in `.vimrc`
 ```

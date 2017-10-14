@@ -48,3 +48,7 @@ inoremap <A-Right> <C-o>:call FindWord("i", "r")<CR>
 nnoremap <A-Left> :call FindWord("n", "l")<CR>
 inoremap <A-Left> <C-o>:call FindWord("i", "l")<CR>
 
+nnoremap <A-x> :
+vnoremap <A-x> :
+inoremap <A-x> <C-o>:
+
