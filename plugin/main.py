@@ -2,6 +2,29 @@
 import vim
 import string
 
+################################################
+# {{{ misc functions
+
+debug = bool(int(vim.eval('exists("g:emacs_keys_debug")')))
+
+def dbg_init(title):
+    if not debug:
+        return
+    buf = vim.current.buffer
+    buf[0] = title + ": "
+
+def dbg_add(msg):
+    if not debug:
+        return
+    buf = vim.current.buffer
+    buf[0] += msg + "; "
+
+
+is_not_alnum = lambda x: not str.isalnum(x)
+is_alnum = lambda x: str.isalnum(x)
+is_upper = lambda x: str.isupper(x)
+is_lower_or_digit = lambda x: str.isdigit(x) or str.islower(x)
+
 def skip_chars(line, slen, pos, test):
     while pos < slen:
         if not test(line[pos]):
@@ -11,6 +34,7 @@ def skip_chars(line, slen, pos, test):
 
 def set_cursor(row, col):
     vim.current.window.cursor = row + 1, col
+    dbg_add("set pos %s, %s" % (row, col))
 
 def get_cursor(mode='n'):
     if mode == 'n':
@@ -26,72 +50,52 @@ def get_cursor(mode='n'):
 def get_text():
     return vim.current.line, len(vim.current.line)
 
-is_not_alnum = lambda x: not str.isalnum(x)
-is_alnum = lambda x: str.isalnum(x)
-is_upper = lambda x: str.isupper(x)
-is_lower_or_digit = lambda x: str.isdigit(x) or str.islower(x)
-
-################################################
-# {{{ kill word
-
-
-def kill_alg_2(line, slen, pos):
-    # find word
-    anpos = skip_chars(line, slen, pos, is_not_alnum)
-
-    # if no word - delete rest of the line
-    if anpos == slen:
-        return slen - 1
-
-    # if gap is small, delete both gap and a word
-    gap = anpos - pos
-    if '\t' in line[pos:anpos]:
-        gap += 4
-    if gap < 4:
-        anpos = skip_chars(line, slen, anpos, is_upper)
-        return skip_chars(line, slen, anpos, is_lower_or_digit)
-
-    # otherwise delete the gap and bring word forward
-    return anpos
-
-
-def kill_word():
+def init(title):
+    dbg_init("kill_word")
     mode = vim.eval("a:mode")
     buf = vim.current.buffer
-    line, slen = get_text()
     row, col = get_cursor(mode)
+    dbg_add("mode %s; pos %s, %s" % (mode, row, col))
+    return mode, buf, row, col
 
-    # delete empty lines
-    if slen == 0:
-        while row < len(buf):
-            if len(buf[row]):
-                break
-            del buf[row]
-        return
+def search(pattern, flags):
+    cmd = 'search("%s", "%s")' % (pattern, flags)
+    rc = int(vim.eval(cmd))
+    dbg_add("search %s" % rc)
+    row, col = get_cursor()
+    dbg_add("pos %s, %s" % (row, col))
+    return rc, row, col
 
-    # insert mode, end of line - join next line
-    if col == slen:
-        vim.command('/\w')
-        erow, ecol = get_cursor()
-        # if no word found - delete till the end of a buffer
-        if erow < 1:
-            del buf[row + 1:]
-            set_cursor(row, col)
-            return
-        # otherwise delete till the word
-        buf[row] += buf[erow][ecol:]
-        del buf[row + 1:erow + 1]
-        set_cursor(row, col)
-    elif col == slen -1:
-        buf[row] = line[:col]
-    else:
-        pos = kill_alg_2(line, slen, col)
-        buf[row] = line[:col] + line[pos:]
-    slen = len(buf[row])
+
 # }}}
 
 ################################################
-# {{{ chage word case
+# {{{ word manipulation
+
+CLOSE_RANGE = 3
+
+def kill_word():
+    mode, buf, orow, ocol = init("kill_word")
+
+    rc, row, col = search("[a-zA-Z0-9]", "Wc")
+    if rc == 0:
+        # no words found - delete till the end of a file
+        buf[orow] = buf[orow][:ocol]
+        del buf[orow+1:]
+        set_cursor(orow, ocol)
+        return
+
+    line, slen = get_text()
+    # if word is close - include it in the range
+    if row == orow and (col - ocol < CLOSE_RANGE):
+        col = skip_chars(line, slen, col, is_upper)
+        col = skip_chars(line, slen, col, is_lower_or_digit)
+
+    # delete the range
+    buf[orow] = buf[orow][:ocol] + buf[row][col:]
+    del buf[orow+1:row+1]
+
+    set_cursor(orow, ocol)
 
 conv = {
     'l': string.lower,
@@ -99,40 +103,26 @@ conv = {
     'c': string.capitalize
 }
 
-# FIXME: Can't make vim command "/\w' do right thing. So write it myself
-def find_word(mode, buf, row, col):
-    while row < len(buf):
-        line = buf[row]
-        slen = len(line)
-        while col < slen:
-            if line[col].isalnum():
-                return (row, col)
-            col += 1
-        col = 0
-        row += 1
-
-    return (None, None)
-
-
 def change_word_case():
-    mode = vim.eval("a:mode")
-    buf = vim.current.buffer
+    mode, buf, orow, ocol = init("change_word_case")
 
-    row, col = find_word(mode, buf, *get_cursor(mode))
-    if row is None:
+    rc, row, col = search("[a-zA-Z0-9]", "Wc")
+    if rc == 0:
         return
-    line = buf[row]
-    slen = len(line)
+
+    line, slen = get_text()
     ecol = skip_chars(line, slen, col, is_alnum)
     func = conv[vim.eval("a:conv")]
     buf[row] = line[:col] + func(line[col:ecol]) + line[ecol:]
     set_cursor(row, ecol)
+
 # }}}
 
 ################################################
-# {{{ cursor movements
+# {{{ movements
 
 def find_word_end():
-    pass
+    mode, buf, orow, ocol = init("find_word_end")
+
 # }}}
 

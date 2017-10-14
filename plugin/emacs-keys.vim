@@ -7,10 +7,10 @@ if !has('python')
 	finish
 endif
 
-if exists("g:loaded_emacs_keys") || &cp || &modifiable == 0
+if exists("g:emacs_keys_loaded") || &cp || &modifiable == 0
   finish
 endif
-let g:loaded_emacs_keys = 100
+let g:emacs_keys_loaded = 100
 
 
 let g:InsCol = 0
