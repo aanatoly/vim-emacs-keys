@@ -23,6 +23,7 @@ autocmd CursorMovedI * let g:InsCol = col('.') |
 let s:emacs_py = resolve(expand('<sfile>:p:h')) ."/main.py"
 execute 'pyfile ' . s:emacs_py
 
+
 function! KillWord(mode)
     py kill_word()
 endfunc
@@ -38,4 +39,12 @@ nnoremap <A-l> :call ChangeWordCase("n", "l")<CR>
 inoremap <A-l> <C-o>:call ChangeWordCase("i", "l")<CR>
 nnoremap <A-c> :call ChangeWordCase("n", "c")<CR>
 inoremap <A-c> <C-o>:call ChangeWordCase("i", "c")<CR>
+
+function! FindWord(mode, dir)
+    py find_word()
+endfunc
+nnoremap <A-Right> :call FindWord("n", "r")<CR>
+inoremap <A-Right> <C-o>:call FindWord("i", "r")<CR>
+nnoremap <A-Left> :call FindWord("n", "l")<CR>
+inoremap <A-Left> <C-o>:call FindWord("i", "l")<CR>
 

@@ -3,7 +3,7 @@ import vim
 import string
 
 ################################################
-# {{{ misc functions
+# {{{ helpers
 
 debug = bool(int(vim.eval('exists("g:emacs_keys_debug")')))
 
@@ -51,7 +51,7 @@ def get_text():
     return vim.current.line, len(vim.current.line)
 
 def init(title):
-    dbg_init("kill_word")
+    dbg_init(title)
     mode = vim.eval("a:mode")
     buf = vim.current.buffer
     row, col = get_cursor(mode)
@@ -97,6 +97,7 @@ def kill_word():
 
     set_cursor(orow, ocol)
 
+
 conv = {
     'l': string.lower,
     'u': string.upper,
@@ -121,8 +122,34 @@ def change_word_case():
 ################################################
 # {{{ movements
 
+def find_word():
+    mdir = vim.eval("a:dir")
+    if mdir == 'r':
+        find_word_end()
+    elif mdir == 'l':
+        find_word_start()
+
+def find_word_start():
+    mode, buf, orow, ocol = init("find_word_start")
+    rc, row, col = search("\\\([A-Z]\\\+[a-z0-9]\\\+\\\|[a-z0-9]\\\+\\\)", "Wb")
+
+
 def find_word_end():
     mode, buf, orow, ocol = init("find_word_end")
+    line, slen = get_text()
+
+    flags = "W"
+    if not (mode == 'n' and ocol == slen - 1):
+        flags += "c"
+    rc, row, col = search("[a-zA-Z0-9]", flags)
+    if rc == 0:
+        return
+
+    line, slen = get_text()
+    col = skip_chars(line, slen, col, is_upper)
+    col = skip_chars(line, slen, col, is_lower_or_digit)
+
+    set_cursor(row, col)
 
 # }}}
 
