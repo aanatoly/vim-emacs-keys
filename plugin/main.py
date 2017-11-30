@@ -1,6 +1,4 @@
-
 import vim
-import string
 
 ################################################
 # {{{ helpers
@@ -99,9 +97,9 @@ def kill_word():
 
 
 conv = {
-    'l': string.lower,
-    'u': string.upper,
-    'c': string.capitalize
+    'l': str.lower,
+    'u': str.upper,
+    'c': str.capitalize
 }
 
 def change_word_case():
@@ -152,4 +150,3 @@ def find_word_end():
     set_cursor(row, col)
 
 # }}}
-
